@@ -1,0 +1,119 @@
+{
+  "environment": {
+    "torch_version": "2.15.0",
+    "jax_version": "0.12.0.1",
+    "xla_devices": [
+      "cpu:0",
+      "cpu:1",
+      "cpu:2",
+      "cpu:3"
+    ]
+  },
+  "exp01_lazy_tensor": {
+    "steps": 6,
+    "uncached_compiles": 1,
+    "cached_compiles": 5,
+    "host_stalls": 0,
+    "initial_loss": 0.99999,
+    "final_loss": 0.946505
+  },
+  "exp02_hunting_graph_breaks": {
+    "steps_executed": 5,
+    "uncached_compiles": 10,
+    "cached_compiles": 0,
+    "host_barrier_stalls": 10,
+    "aten_nonzero_fallbacks": 5
+  },
+  "exp03_three_xla_traps_fixed": {
+    "steps": 6,
+    "naive": {
+      "uncached_compiles": 12,
+      "cached_compiles": 0,
+      "host_barrier_stalls": 12,
+      "aten_nonzero_fallbacks": 12,
+      "elapsed_ms": 11.651,
+      "losses": [
+        -0.027332,
+        -0.07813,
+        -0.169191,
+        -0.263467,
+        -0.347997,
+        -0.426458
+      ]
+    },
+    "xla_optimized": {
+      "uncached_compiles": 1,
+      "cached_compiles": 5,
+      "recompiles_after_warmup": 0,
+      "host_barrier_stalls": 0,
+      "aten_nonzero_fallbacks": 0,
+      "elapsed_ms": 4.757,
+      "losses": [
+        -0.027332,
+        -0.07813,
+        -0.169191,
+        -0.263467,
+        -0.347997,
+        -0.426458
+      ]
+    },
+    "numerical_parity": {
+      "allclose": true,
+      "max_abs_diff": 2.9802322387695312e-08
+    }
+  },
+  "exp04_spmd_sharding_tpu": {
+    "num_xla_devices": 4,
+    "mesh_shape": {
+      "data": 2,
+      "model": 2
+    },
+    "global_shapes": {
+      "x": [
+        16,
+        32,
+        128
+      ],
+      "w_up": [
+        128,
+        512
+      ],
+      "w_down": [
+        512,
+        128
+      ]
+    },
+    "per_device_shard_shapes": {
+      "x_shard": [
+        8,
+        32,
+        128
+      ],
+      "w_up_shard": [
+        128,
+        256
+      ],
+      "w_down_shard": [
+        256,
+        128
+      ]
+    },
+    "spmd_parity_allclose": true,
+    "spmd_max_abs_diff": 7.748603820800781e-07
+  },
+  "exp05_call_jax_from_pytorch": {
+    "fwd_allclose": true,
+    "bwd_allclose": true,
+    "fwd_max_abs_diff": 2.384185791015625e-07,
+    "grad_x_max_abs_diff": 2.9103830456733704e-11,
+    "grad_w_gate_max_abs_diff": 5.820766091346741e-11,
+    "training_losses": [
+      1.000893,
+      0.985589,
+      0.965895,
+      0.936393,
+      0.892995
+    ]
+  },
+  "all_verifications_passed": true
+}

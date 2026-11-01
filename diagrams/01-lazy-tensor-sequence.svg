@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 1040 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="lazy-tensor-sequence-title lazy-tensor-sequence-desc" id="d-01-lazy-tensor-sequence-root">
+        <title id="lazy-tensor-sequence-title">LazyTensor IR Accumulation vs Early Host Synchronization Stall</title>
+        <desc id="lazy-tensor-sequence-desc">Sequence diagram showing PyTorch recording lazy IR nodes until xm.mark_step() dispatches a single fused OpenXLA TPU execution, contrasted against mid-step loss.item() forcing a synchronous CPU stall.</desc>
+        <defs>
+      <style>@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500;600&amp;family=Noto+Serif:ital@0;1&amp;family=Noto+Sans+KR:wght@400;500;600&amp;family=Noto+Serif+KR:wght@400&amp;family=Noto+Sans+TC:wght@400;500;600&amp;family=Noto+Serif+TC:wght@400&amp;display=swap');
+      #d-01-lazy-tensor-sequence-root { --color-paper:   #F7F6F2;
+      --color-paper-2: #EFECE6;
+      --color-ink:     #0F2547;
+      --color-muted:   #3B5B8C;
+      --color-accent:  #C59216;
+      --color-accent-text: #9A6F0B;
+      --font-sans:     'Geist', system-ui, sans-serif;
+      --font-serif:    'Instrument Serif', Georgia, serif;
+      --font-mono:     'Geist Mono', ui-monospace, monospace; }
+      #d-01-lazy-tensor-sequence-root { font-family: var(--font-sans); color: var(--color-ink); }
+      #d-01-lazy-tensor-sequence-root .diagram-container { width: 100%; overflow-x: auto; }
+      #d-01-lazy-tensor-sequence-root .diagram-container { overflow-x: visible; }</style>
+          <marker id="d-01-lazy-tensor-sequence-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#3B5B8C"/>
+          </marker>
+          <marker id="d-01-lazy-tensor-sequence-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#C59216"/>
+          </marker>
+          <marker id="d-01-lazy-tensor-sequence-arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+            <polyline points="0 0, 8 3, 0 6" fill="none" stroke="#3B5B8C" stroke-width="1.2"/>
+          </marker>
+          <pattern id="d-01-lazy-tensor-sequence-dots" width="24" height="24" patternUnits="userSpaceOnUse">
+            <circle cx="2" cy="2" r="0.85" fill="#0f2547" fill-opacity="0.10"/>
+          </pattern>
+        </defs>
+
+        <rect width="1040" height="600" fill="#F7F6F2"/>
+        <rect width="1040" height="600" fill="url(#d-01-lazy-tensor-sequence-dots)" opacity="0.6"/>
+
+        <!-- Lifelines (CX = 140, 400, 660, 900) -->
+        <line x1="140" y1="88" x2="140" y2="520" stroke="#0f2547" stroke-opacity="0.22" stroke-width="1" stroke-dasharray="4,4"/>
+        <line x1="400" y1="88" x2="400" y2="520" stroke="#0f2547" stroke-opacity="0.22" stroke-width="1" stroke-dasharray="4,4"/>
+        <line x1="660" y1="88" x2="660" y2="520" stroke="#0f2547" stroke-opacity="0.22" stroke-width="1" stroke-dasharray="4,4"/>
+        <line x1="900" y1="88" x2="900" y2="520" stroke="#0f2547" stroke-opacity="0.22" stroke-width="1" stroke-dasharray="4,4"/>
+
+        <!-- Combined Fragment Frame: ALT (x=64, y=224, width=912, height=276) -->
+        <rect x="64" y="224" width="912" height="276" rx="4" fill="#0f2547" fill-opacity="0.025" stroke="#0f2547" stroke-opacity="0.22" stroke-width="1"/>
+        <rect x="64" y="224" width="44" height="16" rx="2" fill="#EFECE6" stroke="#0f2547" stroke-opacity="0.22" stroke-width="1"/>
+        <text x="86" y="235" fill="#3B5B8C" font-size="8" font-family="'Geist Mono', monospace" font-weight="600" text-anchor="middle" letter-spacing="0.12em">ALT</text>
+
+        <!-- Guard 1: Happy path with xm.mark_step() -->
+        <text x="156" y="236" fill="#9A6F0B" font-size="9" font-family="'Geist Mono', monospace" font-weight="600" letter-spacing="0.04em">[explicit xm.mark_step() barrier]</text>
+
+        <!-- Divider between ALT branches (y=376) -->
+        <line x1="72" y1="376" x2="968" y2="376" stroke="#0f2547" stroke-opacity="0.22" stroke-width="1" stroke-dasharray="4,3"/>
+
+        <!-- Guard 2: Anti-pattern mid-step loss.item() -->
+        <text x="156" y="396" fill="#3B5B8C" font-size="9" font-family="'Geist Mono', monospace" font-weight="500" letter-spacing="0.04em">[else: mid-step loss.item() stall]</text>
+
+        <!-- Activation Bars -->
+        <rect x="136" y="108" width="8" height="376" fill="#0f2547" fill-opacity="0.08" stroke="#3B5B8C" stroke-width="0.8"/>
+        <rect x="396" y="116" width="8" height="224" fill="#0f2547" fill-opacity="0.08" stroke="#3B5B8C" stroke-width="0.8"/>
+        <rect x="656" y="264" width="8" height="60" fill="#c59216" fill-opacity="0.16" stroke="#C59216" stroke-width="1"/>
+        <rect x="896" y="292" width="8" height="48" fill="#c59216" fill-opacity="0.16" stroke="#C59216" stroke-width="1"/>
+        <rect x="396" y="412" width="8" height="40" fill="#0f2547" fill-opacity="0.08" stroke="#3B5B8C" stroke-width="0.8"/>
+        <rect x="656" y="428" width="8" height="48" fill="#0f2547" fill-opacity="0.08" stroke="#3B5B8C" stroke-width="0.8"/>
+
+        <!-- Messages above ALT: Lazy IR recording (async fire-and-forget into IR graph) -->
+        <line x1="144" y1="124" x2="392" y2="124" stroke="#3B5B8C" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#d-01-lazy-tensor-sequence-arrow-open)"/>
+        <rect x="208" y="104" width="124" height="12" fill="#F7F6F2"/>
+        <text x="270" y="113" fill="#3B5B8C" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">1. RECORD FWD</text>
+
+        <line x1="144" y1="164" x2="392" y2="164" stroke="#3B5B8C" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#d-01-lazy-tensor-sequence-arrow-open)"/>
+        <rect x="204" y="144" width="132" height="12" fill="#F7F6F2"/>
+        <text x="270" y="153" fill="#3B5B8C" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">2. RECORD BWD</text>
+
+        <line x1="144" y1="200" x2="392" y2="200" stroke="#3B5B8C" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#d-01-lazy-tensor-sequence-arrow-open)"/>
+        <rect x="200" y="180" width="140" height="12" fill="#F7F6F2"/>
+        <text x="270" y="189" fill="#3B5B8C" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">3. RECORD STEP</text>
+
+        <!-- ALT Region 1: Fused mark_step() path -->
+        <line x1="144" y1="268" x2="392" y2="268" stroke="#C59216" stroke-width="1.5" marker-end="url(#d-01-lazy-tensor-sequence-arrow-accent)"/>
+        <rect x="204" y="248" width="132" height="12" fill="#F7F6F2"/>
+        <text x="270" y="257" fill="#9A6F0B" font-size="9" font-family="'Geist Mono', monospace" font-weight="600" text-anchor="middle">4. MARK_STEP()</text>
+
+        <line x1="404" y1="284" x2="652" y2="284" stroke="#3B5B8C" stroke-width="1.2" marker-end="url(#d-01-lazy-tensor-sequence-arrow)"/>
+        <rect x="468" y="264" width="124" height="12" fill="#F7F6F2"/>
+        <text x="530" y="273" fill="#3B5B8C" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">5. CACHED HLO</text>
+
+        <line x1="664" y1="304" x2="892" y2="304" stroke="#C59216" stroke-width="1.5" marker-end="url(#d-01-lazy-tensor-sequence-arrow-accent)"/>
+        <rect x="716" y="284" width="128" height="12" fill="#F7F6F2"/>
+        <text x="780" y="293" fill="#9A6F0B" font-size="9" font-family="'Geist Mono', monospace" font-weight="600" text-anchor="middle">6. FUSED EXEC</text>
+
+        <line x1="892" y1="336" x2="144" y2="336" stroke="#3B5B8C" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#d-01-lazy-tensor-sequence-arrow)"/>
+        <rect x="464" y="316" width="132" height="12" fill="#F7F6F2"/>
+        <text x="530" y="325" fill="#3B5B8C" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">7. STEP CLOSURE</text>
+
+        <!-- ALT Region 2: Mid-step loss.item() CPU stall -->
+        <line x1="144" y1="424" x2="392" y2="424" stroke="#3B5B8C" stroke-width="1.2" marker-end="url(#d-01-lazy-tensor-sequence-arrow)"/>
+        <rect x="208" y="404" width="124" height="12" fill="#F7F6F2"/>
+        <text x="270" y="413" fill="#3B5B8C" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">4B. LOSS.ITEM()</text>
+
+        <line x1="404" y1="444" x2="652" y2="444" stroke="#3B5B8C" stroke-width="1.2" marker-end="url(#d-01-lazy-tensor-sequence-arrow)"/>
+        <rect x="464" y="424" width="132" height="12" fill="#F7F6F2"/>
+        <text x="530" y="433" fill="#3B5B8C" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">5B. GRAPH BREAK</text>
+
+        <line x1="652" y1="472" x2="144" y2="472" stroke="#3B5B8C" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#d-01-lazy-tensor-sequence-arrow)"/>
+        <rect x="464" y="452" width="132" height="12" fill="#F7F6F2"/>
+        <text x="530" y="461" fill="#3B5B8C" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">6B. D2H STALL</text>
+
+        <!-- Actor Boxes at Top (drawn after lines for crisp edges) -->
+        <!-- Actor 1: PyTorch Loop -->
+        <rect x="56" y="24" width="168" height="64" rx="6" fill="#EFECE6" stroke="#0F2547" stroke-width="1.2"/>
+        <rect x="64" y="32" width="44" height="14" rx="2" fill="#0f2547" fill-opacity="0.10"/>
+        <text x="86" y="42" fill="#0F2547" font-size="8" font-family="'Geist Mono', monospace" font-weight="600" text-anchor="middle">HOST</text>
+        <text x="140" y="60" fill="#0F2547" font-size="13" font-family="'Geist', sans-serif" font-weight="600" text-anchor="middle">PyTorch Loop</text>
+        <text x="140" y="76" fill="#3B5B8C" font-size="9.5" font-family="'Geist Mono', monospace" text-anchor="middle">Python Dispatcher</text>
+
+        <!-- Actor 2: LazyTensor IR -->
+        <rect x="316" y="24" width="168" height="64" rx="6" fill="#EFECE6" stroke="#0F2547" stroke-width="1.2"/>
+        <rect x="324" y="32" width="48" height="14" rx="2" fill="#0f2547" fill-opacity="0.10"/>
+        <text x="348" y="42" fill="#0F2547" font-size="8" font-family="'Geist Mono', monospace" font-weight="600" text-anchor="middle">GRAPH</text>
+        <text x="400" y="60" fill="#0F2547" font-size="13" font-family="'Geist', sans-serif" font-weight="600" text-anchor="middle">LazyTensor IR</text>
+        <text x="400" y="76" fill="#3B5B8C" font-size="9.5" font-family="'Geist Mono', monospace" text-anchor="middle">122 Pending IR Ops</text>
+
+        <!-- Actor 3: OpenXLA Cache -->
+        <rect x="576" y="24" width="168" height="64" rx="6" fill="#EFECE6" stroke="#0F2547" stroke-width="1.2"/>
+        <rect x="584" y="32" width="44" height="14" rx="2" fill="#0f2547" fill-opacity="0.10"/>
+        <text x="606" y="42" fill="#0F2547" font-size="8" font-family="'Geist Mono', monospace" font-weight="600" text-anchor="middle">PJRT</text>
+        <text x="660" y="60" fill="#0F2547" font-size="13" font-family="'Geist', sans-serif" font-weight="600" text-anchor="middle">OpenXLA Cache</text>
+        <text x="660" y="76" fill="#3B5B8C" font-size="9.5" font-family="'Geist Mono', monospace" text-anchor="middle">HLO Graph Lowering</text>
+
+        <!-- Actor 4: Cloud TPU v5e (Focal Accent) -->
+        <rect x="816" y="24" width="168" height="64" rx="6" fill="#c59216" fill-opacity="0.12" stroke="#C59216" stroke-width="1.6"/>
+        <rect x="824" y="32" width="44" height="14" rx="2" fill="#c59216" fill-opacity="0.22"/>
+        <text x="846" y="42" fill="#9A6F0B" font-size="8" font-family="'Geist Mono', monospace" font-weight="600" text-anchor="middle">XLA:0</text>
+        <text x="900" y="60" fill="#0F2547" font-size="13" font-family="'Geist', sans-serif" font-weight="600" text-anchor="middle">Cloud TPU v5e</text>
+        <text x="900" y="76" fill="#9A6F0B" font-size="9.5" font-family="'Geist Mono', monospace" font-weight="500" text-anchor="middle">MXU Fused Execution</text>
+
+        <!-- Bottom Legend Strip (y=540..588) -->
+        <line x1="56" y1="540" x2="984" y2="540" stroke="#0f2547" stroke-opacity="0.16" stroke-width="1"/>
+        <line x1="64" y1="564" x2="100" y2="564" stroke="#C59216" stroke-width="1.6" marker-end="url(#d-01-lazy-tensor-sequence-arrow-accent)"/>
+        <text x="112" y="568" fill="#0F2547" font-size="10" font-family="'Geist Mono', monospace">Fused XLA barrier path (0 stalls)</text>
+
+        <line x1="360" y1="564" x2="396" y2="564" stroke="#3B5B8C" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#d-01-lazy-tensor-sequence-arrow-open)"/>
+        <text x="408" y="568" fill="#3B5B8C" font-size="10" font-family="'Geist Mono', monospace">Async Lazy IR recording</text>
+
+        <line x1="620" y1="564" x2="656" y2="564" stroke="#3B5B8C" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#d-01-lazy-tensor-sequence-arrow)"/>
+        <text x="668" y="568" fill="#3B5B8C" font-size="10" font-family="'Geist Mono', monospace">Return callback / D2H transfer</text>
+      </svg>

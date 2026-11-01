@@ -1,0 +1,11 @@
+title = "Gitleaks configuration for pytorch-xla-tpu-playbook"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Allowlist for public benchmark outputs and documentation"
+paths = [
+  '''^\.venv''',
+  '''^benchmarks/latest_results\.json$''',
+]
