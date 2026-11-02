@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 728 290" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="torchtpu-two-paths-title torchtpu-two-paths-desc" id="d-01-torchtpu-two-paths-root">
+        <title id="torchtpu-two-paths-title">Dos caminos de PyTorch hacia la TPU con TorchTPU</title>
+        <desc id="torchtpu-two-paths-desc">Eager: cada op se despacha al dispositivo tpu registrado como PrivateUse1. Compilado: TorchDynamo captura un grafo FX que el backend tpu baja a StableHLO y XLA compila a un ejecutable que se cachea.</desc>
+        <defs>
+      <style>@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500;600&amp;family=Noto+Serif:ital@0;1&amp;family=Noto+Sans+KR:wght@400;500;600&amp;family=Noto+Serif+KR:wght@400&amp;family=Noto+Sans+TC:wght@400;500;600&amp;family=Noto+Serif+TC:wght@400&amp;display=swap');
+      #d-01-torchtpu-two-paths-root { --color-paper: #F7F6F2; --color-paper-2: #EFECE6; --color-ink: #0F2547;
+      --color-muted: #3B5B8C; --color-accent: #C59216; --color-accent-text: #9A6F0B;
+      --font-sans: 'Geist', system-ui, sans-serif; --font-serif: 'Instrument Serif', Georgia, serif;
+      --font-mono: 'Geist Mono', ui-monospace, monospace; }
+      #d-01-torchtpu-two-paths-root { font-family: var(--font-sans); color: var(--color-ink); }
+      #d-01-torchtpu-two-paths-root .diagram-container { width: 100%; overflow-x: auto; }
+      #d-01-torchtpu-two-paths-root .diagram-container { overflow-x: visible; }</style>
+          <pattern id="d-01-torchtpu-two-paths-dots" width="22" height="22" patternUnits="userSpaceOnUse">
+            <circle cx="11" cy="11" r="0.8" fill="#0f2547" fill-opacity="0.10"/>
+          </pattern>
+          <marker id="d-01-torchtpu-two-paths-arr-muted" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#3B5B8C"/></marker>
+          <marker id="d-01-torchtpu-two-paths-arr-accent" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#C59216"/></marker>
+        </defs>
+        <rect width="728" height="290" fill="#F7F6F2"/>
+        <rect width="728" height="290" fill="url(#d-01-torchtpu-two-paths-dots)"/>
+        <line x1="0" y1="36" x2="728" y2="36" stroke="#0f2547" stroke-opacity="0.14" stroke-width="0.8"/>
+        <line x1="0" y1="136" x2="728" y2="136" stroke="#0f2547" stroke-opacity="0.14" stroke-width="0.8"/>
+        <line x1="0" y1="236" x2="728" y2="236" stroke="#0f2547" stroke-opacity="0.14" stroke-width="0.8"/>
+        <line x1="128" y1="36" x2="128" y2="236" stroke="#0f2547" stroke-opacity="0.14" stroke-width="0.8"/>
+        <rect x="0" y="36" width="728" height="100" fill="#0f2547" fill-opacity="0.018"/>
+        <text x="364" y="24" fill="#3B5B8C" font-size="8" font-family="'Geist Mono', monospace" font-weight="600" text-anchor="middle" letter-spacing="0.12em">EL MISMO CÓDIGO PYTORCH, DOS CAMINOS HACIA LA TPU</text>
+        <text x="64" y="82" fill="#3B5B8C" font-size="7.5" font-family="'Geist Mono', monospace" font-weight="600" text-anchor="middle" letter-spacing="0.12em">EAGER</text>
+        <text x="64" y="94" fill="#3B5B8C" font-size="7.5" font-family="'Geist Mono', monospace" font-weight="600" text-anchor="middle" letter-spacing="0.12em">(DEFAULT)</text>
+        <text x="64" y="182" fill="#3B5B8C" font-size="7.5" font-family="'Geist Mono', monospace" font-weight="600" text-anchor="middle" letter-spacing="0.12em">TORCH.</text>
+        <text x="64" y="194" fill="#3B5B8C" font-size="7.5" font-family="'Geist Mono', monospace" font-weight="600" text-anchor="middle" letter-spacing="0.12em">COMPILE</text>
+        <rect x="142" y="52" width="110" height="68" rx="6" fill="#F7F6F2" stroke="#0f2547" stroke-opacity="0.28" stroke-width="1"/>
+        <rect x="146" y="56" width="33" height="10" rx="3" fill="#0f2547" fill-opacity="0.12"/>
+        <text x="162.5" y="63" fill="#0F2547" font-size="6" font-family="'Geist Mono', monospace" font-weight="600" text-anchor="middle">TORCH</text>
+        <text x="197.0" y="78" fill="#0F2547" font-size="9" font-family="'Geist', sans-serif" font-weight="600" text-anchor="middle">Tu código</text>
+        <text x="197.0" y="90" fill="#3B5B8C" font-size="6.5" font-family="'Geist Mono', monospace" font-weight="400" text-anchor="middle">torch.device("tpu")</text>
+        <text x="197.0" y="101" fill="#3B5B8C" font-size="6.5" font-family="'Geist Mono', monospace" font-weight="400" text-anchor="middle">nn.Module + AdamW</text>
+        <rect x="292" y="52" width="120" height="68" rx="6" fill="#F7F6F2" stroke="#0f2547" stroke-opacity="0.28" stroke-width="1"/>
+        <text x="352.0" y="70" fill="#0F2547" font-size="9" font-family="'Geist', sans-serif" font-weight="600" text-anchor="middle">Op por op</text>
+        <text x="352.0" y="82" fill="#3B5B8C" font-size="6.5" font-family="'Geist Mono', monospace" font-weight="400" text-anchor="middle">PrivateUse1 = "tpu"</text>
+        <text x="352.0" y="93" fill="#3B5B8C" font-size="6.5" font-family="'Geist Mono', monospace" font-weight="400" text-anchor="middle">una op, un despacho</text>
+        <rect x="452" y="52" width="120" height="68" rx="6" fill="#F7F6F2" stroke="#0f2547" stroke-opacity="0.28" stroke-width="1"/>
+        <text x="512.0" y="70" fill="#0F2547" font-size="9" font-family="'Geist', sans-serif" font-weight="600" text-anchor="middle">Sync points</text>
+        <text x="512.0" y="82" fill="#3B5B8C" font-size="6.5" font-family="'Geist Mono', monospace" font-weight="400" text-anchor="middle">.item(), if tensor</text>
+        <text x="512.0" y="93" fill="#3B5B8C" font-size="6.5" font-family="'Geist Mono', monospace" font-weight="400" text-anchor="middle">esperan al device</text>
+        <rect x="604" y="52" width="110" height="68" rx="6" fill="#F7F6F2" stroke="#0f2547" stroke-opacity="0.28" stroke-width="1"/>
+        <rect x="608" y="56" width="18" height="10" rx="3" fill="#0f2547" fill-opacity="0.12"/>
+        <text x="617.0" y="63" fill="#0F2547" font-size="6" font-family="'Geist Mono', monospace" font-weight="600" text-anchor="middle">HW</text>
+        <text x="659.0" y="78" fill="#0F2547" font-size="9" font-family="'Geist', sans-serif" font-weight="600" text-anchor="middle">TPU</text>
+        <text x="659.0" y="90" fill="#3B5B8C" font-size="6.5" font-family="'Geist Mono', monospace" font-weight="400" text-anchor="middle">ejecución</text>
+        <text x="659.0" y="101" fill="#3B5B8C" font-size="6.5" font-family="'Geist Mono', monospace" font-weight="400" text-anchor="middle">asíncrona</text>
+        <path d="M 252 86 L 288 86" fill="none" stroke="#3B5B8C" stroke-width="1.0" marker-end="url(#d-01-torchtpu-two-paths-arr-muted)"/>
+        <path d="M 412 86 L 448 86" fill="none" stroke="#3B5B8C" stroke-width="1.0" marker-end="url(#d-01-torchtpu-two-paths-arr-muted)"/>
+        <path d="M 572 86 L 600 86" fill="none" stroke="#3B5B8C" stroke-width="1.0" marker-end="url(#d-01-torchtpu-two-paths-arr-muted)"/>
+        <rect x="142" y="152" width="110" height="68" rx="6" fill="#F7F6F2" stroke="#0f2547" stroke-opacity="0.28" stroke-width="1"/>
+        <rect x="146" y="156" width="33" height="10" rx="3" fill="#0f2547" fill-opacity="0.12"/>
+        <text x="162.5" y="163" fill="#0F2547" font-size="6" font-family="'Geist Mono', monospace" font-weight="600" text-anchor="middle">TORCH</text>
+        <text x="197.0" y="178" fill="#0F2547" font-size="9" font-family="'Geist', sans-serif" font-weight="600" text-anchor="middle">TorchDynamo</text>
+        <text x="197.0" y="190" fill="#3B5B8C" font-size="6.5" font-family="'Geist Mono', monospace" font-weight="400" text-anchor="middle">captura Python</text>
+        <text x="197.0" y="201" fill="#3B5B8C" font-size="6.5" font-family="'Geist Mono', monospace" font-weight="400" text-anchor="middle">-&gt; FX graph</text>
+        <rect x="292" y="152" width="120" height="68" rx="6" fill="#c59216" fill-opacity="0.12" stroke="#C59216" stroke-width="1.5"/>
+        <rect x="296" y="156" width="43" height="10" rx="3" fill="#c59216" fill-opacity="0.24"/>
+        <text x="317.5" y="163" fill="#9A6F0B" font-size="6" font-family="'Geist Mono', monospace" font-weight="600" text-anchor="middle">OPENXLA</text>
+        <text x="352.0" y="178" fill="#0F2547" font-size="9" font-family="'Geist', sans-serif" font-weight="600" text-anchor="middle">StableHLO</text>
+        <text x="352.0" y="190" fill="#9A6F0B" font-size="6.5" font-family="'Geist Mono', monospace" font-weight="400" text-anchor="middle">un programa por grafo</text>
+        <text x="352.0" y="201" fill="#3B5B8C" font-size="6.5" font-family="'Geist Mono', monospace" font-weight="400" text-anchor="middle">formas estáticas</text>
+        <rect x="452" y="152" width="120" height="68" rx="6" fill="#F7F6F2" stroke="#0f2547" stroke-opacity="0.28" stroke-width="1"/>
+        <rect x="456" y="156" width="43" height="10" rx="3" fill="#0f2547" fill-opacity="0.12"/>
+        <text x="477.5" y="163" fill="#0F2547" font-size="6" font-family="'Geist Mono', monospace" font-weight="600" text-anchor="middle">OPENXLA</text>
+        <text x="512.0" y="178" fill="#0F2547" font-size="9" font-family="'Geist', sans-serif" font-weight="600" text-anchor="middle">XLA compiler</text>
+        <text x="512.0" y="190" fill="#3B5B8C" font-size="6.5" font-family="'Geist Mono', monospace" font-weight="400" text-anchor="middle">fusiona y asigna</text>
+        <text x="512.0" y="201" fill="#3B5B8C" font-size="6.5" font-family="'Geist Mono', monospace" font-weight="400" text-anchor="middle">-&gt; ejecutable TPU</text>
+        <rect x="604" y="152" width="110" height="68" rx="6" fill="#F7F6F2" stroke="#0f2547" stroke-opacity="0.28" stroke-width="1"/>
+        <text x="659.0" y="170" fill="#0F2547" font-size="9" font-family="'Geist', sans-serif" font-weight="600" text-anchor="middle">Cache</text>
+        <text x="659.0" y="182" fill="#3B5B8C" font-size="6.5" font-family="'Geist Mono', monospace" font-weight="400" text-anchor="middle">se reusa mientras</text>
+        <text x="659.0" y="193" fill="#3B5B8C" font-size="6.5" font-family="'Geist Mono', monospace" font-weight="400" text-anchor="middle">las formas no cambien</text>
+        <path d="M 252 186 L 288 186" fill="none" stroke="#C59216" stroke-width="1.3" marker-end="url(#d-01-torchtpu-two-paths-arr-accent)"/>
+        <rect x="261.8" y="172" width="16.4" height="11" fill="#F7F6F2"/>
+        <text x="270" y="180" fill="#9A6F0B" font-size="6.5" font-family="'Geist Mono', monospace" font-weight="600" text-anchor="middle">FX</text>
+        <path d="M 412 186 L 448 186" fill="none" stroke="#C59216" stroke-width="1.3" marker-end="url(#d-01-torchtpu-two-paths-arr-accent)"/>
+        <path d="M 572 186 L 600 186" fill="none" stroke="#3B5B8C" stroke-width="1.0" marker-end="url(#d-01-torchtpu-two-paths-arr-muted)"/>
+        <path d="M 659 152 L 659 124" fill="none" stroke="#3B5B8C" stroke-width="1.0" marker-end="url(#d-01-torchtpu-two-paths-arr-muted)"/>
+        <text x="364" y="256" fill="#0F2547" font-size="7" font-family="'Geist Mono', monospace" font-weight="400" text-anchor="middle">backend="tpu": Dynamo -&gt; FX -&gt; StableHLO -&gt; XLA (sin TorchInductor), según torchtpu.readthedocs.io</text>
+        <text x="364" y="272" fill="#3B5B8C" font-size="7" font-family="'Geist Mono', monospace" font-weight="400" text-anchor="middle">En la laptop: device=cpu y un backend que cuenta cada grafo que Dynamo entrega</text>
+      </svg>

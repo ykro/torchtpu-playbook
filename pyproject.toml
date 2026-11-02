@@ -3,9 +3,9 @@ requires = ["setuptools>=68.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "pytorch-xla-tpu-playbook"
-version = "0.1.0"
-description = "Practical playbook for migrating PyTorch workloads to OpenXLA and Cloud TPU without graph breaks, host sync stalls, or dynamic-shape recompilations."
+name = "torchtpu-playbook"
+version = "0.2.0"
+description = "PyTorch on Cloud TPU with TorchTPU: eager vs torch.compile, graph breaks, static shapes, DTensor sharding and the PyTorch <-> JAX bridge over StableHLO, verified on CPU."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
@@ -13,11 +13,14 @@ authors = [
   { name = "Adrián Catalán" }
 ]
 dependencies = [
-  "torch>=2.4.0",
-  "jax>=0.4.30",
-  "jaxlib>=0.4.30",
+  "torch>=2.9.0",
+  "jax>=0.7.0",
+  "jaxlib>=0.7.0",
   "numpy>=1.26.0",
 ]
+
+# On a Cloud TPU VM (Linux x86_64 only) add TorchTPU:
+#   pip install torch_tpu==0.2.0 --extra-index-url https://download.pytorch.org/whl/cpu
 
 [project.optional-dependencies]
 dev = [

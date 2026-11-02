@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 728 306" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="graph-breaks-vs-fixed-title graph-breaks-vs-fixed-desc" id="d-02-graph-breaks-vs-fixed-root">
+        <title id="graph-breaks-vs-fixed-title">Graph breaks del paso ingenuo contra el paso corregido</title>
+        <desc id="graph-breaks-vs-fixed-desc">El paso ingenuo se parte en tres grafos por .item() y por la máscara booleana y compila 17 grafos en 6 batches. El paso corregido usa torch.where y un bucket de 64 y compila un solo grafo.</desc>
+        <defs>
+      <style>@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500;600&amp;family=Noto+Serif:ital@0;1&amp;family=Noto+Sans+KR:wght@400;500;600&amp;family=Noto+Serif+KR:wght@400&amp;family=Noto+Sans+TC:wght@400;500;600&amp;family=Noto+Serif+TC:wght@400&amp;display=swap');
+      #d-02-graph-breaks-vs-fixed-root { --color-paper: #F7F6F2; --color-paper-2: #EFECE6; --color-ink: #0F2547;
+      --color-muted: #3B5B8C; --color-accent: #C59216; --color-accent-text: #9A6F0B;
+      --font-sans: 'Geist', system-ui, sans-serif; --font-serif: 'Instrument Serif', Georgia, serif;
+      --font-mono: 'Geist Mono', ui-monospace, monospace; }
+      #d-02-graph-breaks-vs-fixed-root { font-family: var(--font-sans); color: var(--color-ink); }
+      #d-02-graph-breaks-vs-fixed-root .diagram-container { width: 100%; overflow-x: auto; }
+      #d-02-graph-breaks-vs-fixed-root .diagram-container { overflow-x: visible; }</style>
+          <pattern id="d-02-graph-breaks-vs-fixed-dots" width="22" height="22" patternUnits="userSpaceOnUse">
+            <circle cx="11" cy="11" r="0.8" fill="#0f2547" fill-opacity="0.10"/>
+          </pattern>
+          <marker id="d-02-graph-breaks-vs-fixed-arr-muted" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#3B5B8C"/></marker>
+          <marker id="d-02-graph-breaks-vs-fixed-arr-accent" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#C59216"/></marker>
+        </defs>
+        <rect width="728" height="306" fill="#F7F6F2"/>
+        <rect width="728" height="306" fill="url(#d-02-graph-breaks-vs-fixed-dots)"/>
+        <text x="364" y="24" fill="#3B5B8C" font-size="8" font-family="'Geist Mono', monospace" font-weight="600" text-anchor="middle" letter-spacing="0.12em">MISMA LOSS, DISTINTO NÚMERO DE GRAFOS</text>
+        <line x1="0" y1="36" x2="728" y2="36" stroke="#0f2547" stroke-opacity="0.14" stroke-width="0.8"/>
+        <line x1="0" y1="146" x2="728" y2="146" stroke="#0f2547" stroke-opacity="0.14" stroke-width="0.8"/>
+        <line x1="0" y1="256" x2="728" y2="256" stroke="#0f2547" stroke-opacity="0.14" stroke-width="0.8"/>
+        <text x="64" y="84" fill="#3B5B8C" font-size="7.5" font-family="'Geist Mono', monospace" font-weight="600" text-anchor="middle" letter-spacing="0.12em">PASO</text>
+        <text x="64" y="96" fill="#3B5B8C" font-size="7.5" font-family="'Geist Mono', monospace" font-weight="600" text-anchor="middle" letter-spacing="0.12em">INGENUO</text>
+        <text x="64" y="194" fill="#3B5B8C" font-size="7.5" font-family="'Geist Mono', monospace" font-weight="600" text-anchor="middle" letter-spacing="0.12em">PASO</text>
+        <text x="64" y="206" fill="#3B5B8C" font-size="7.5" font-family="'Geist Mono', monospace" font-weight="600" text-anchor="middle" letter-spacing="0.12em">CORREGIDO</text>
+        <rect x="142" y="56" width="118" height="70" rx="6" fill="#F7F6F2" stroke="#0f2547" stroke-opacity="0.28" stroke-width="1"/>
+        <rect x="146" y="60" width="18" height="10" rx="3" fill="#0f2547" fill-opacity="0.12"/>
+        <text x="155.0" y="67" fill="#0F2547" font-size="6" font-family="'Geist Mono', monospace" font-weight="600" text-anchor="middle">FX</text>
+        <text x="201.0" y="82" fill="#0F2547" font-size="9" font-family="'Geist', sans-serif" font-weight="600" text-anchor="middle">Grafo 1</text>
+        <text x="201.0" y="94" fill="#3B5B8C" font-size="6.5" font-family="'Geist Mono', monospace" font-weight="400" text-anchor="middle">linear, relu, mean</text>
+        <rect x="312" y="56" width="118" height="70" rx="6" fill="#F7F6F2" stroke="#0f2547" stroke-opacity="0.28" stroke-width="1"/>
+        <rect x="316" y="60" width="18" height="10" rx="3" fill="#0f2547" fill-opacity="0.12"/>
+        <text x="325.0" y="67" fill="#0F2547" font-size="6" font-family="'Geist Mono', monospace" font-weight="600" text-anchor="middle">FX</text>
+        <text x="371.0" y="82" fill="#0F2547" font-size="9" font-family="'Geist', sans-serif" font-weight="600" text-anchor="middle">Grafo 2</text>
+        <text x="371.0" y="94" fill="#3B5B8C" font-size="6.5" font-family="'Geist Mono', monospace" font-weight="400" text-anchor="middle">comparación h &gt; 0</text>
+        <rect x="482" y="56" width="118" height="70" rx="6" fill="#F7F6F2" stroke="#0f2547" stroke-opacity="0.28" stroke-width="1"/>
+        <rect x="486" y="60" width="18" height="10" rx="3" fill="#0f2547" fill-opacity="0.12"/>
+        <text x="495.0" y="67" fill="#0F2547" font-size="6" font-family="'Geist Mono', monospace" font-weight="600" text-anchor="middle">FX</text>
+        <text x="541.0" y="82" fill="#0F2547" font-size="9" font-family="'Geist', sans-serif" font-weight="600" text-anchor="middle">Grafo 3</text>
+        <text x="541.0" y="94" fill="#3B5B8C" font-size="6.5" font-family="'Geist Mono', monospace" font-weight="400" text-anchor="middle">mean, mul, linear</text>
+        <text x="541.0" y="105" fill="#3B5B8C" font-size="6.5" font-family="'Geist Mono', monospace" font-weight="400" text-anchor="middle">forma = nº de activos</text>
+        <path d="M 260 91 L 308 91" fill="none" stroke="#C59216" stroke-width="1.3" marker-end="url(#d-02-graph-breaks-vs-fixed-arr-accent)"/>
+        <rect x="265.3" y="76" width="37.400000000000006" height="11" fill="#F7F6F2"/>
+        <text x="284" y="84" fill="#9A6F0B" font-size="6.5" font-family="'Geist Mono', monospace" font-weight="600" text-anchor="middle">.item()</text>
+        <path d="M 430 91 L 478 91" fill="none" stroke="#C59216" stroke-width="1.3" marker-end="url(#d-02-graph-breaks-vs-fixed-arr-accent)"/>
+        <rect x="433.2" y="76" width="41.6" height="11" fill="#F7F6F2"/>
+        <text x="454" y="84" fill="#9A6F0B" font-size="6.5" font-family="'Geist Mono', monospace" font-weight="600" text-anchor="middle">h[h &gt; 0]</text>
+        <text x="664" y="82" fill="#9A6F0B" font-size="9" font-family="'Geist', sans-serif" font-weight="600" text-anchor="middle">17 grafos</text>
+        <text x="664" y="96" fill="#3B5B8C" font-size="7" font-family="'Geist Mono', monospace" font-weight="400" text-anchor="middle">en 6 batches</text>
+        <text x="664" y="108" fill="#3B5B8C" font-size="7" font-family="'Geist Mono', monospace" font-weight="400" text-anchor="middle">(lengths 20..60)</text>
+        <rect x="142" y="166" width="458" height="70" rx="6" fill="#c59216" fill-opacity="0.12" stroke="#C59216" stroke-width="1.5"/>
+        <rect x="146" y="170" width="18" height="10" rx="3" fill="#c59216" fill-opacity="0.24"/>
+        <text x="155.0" y="177" fill="#9A6F0B" font-size="6" font-family="'Geist Mono', monospace" font-weight="600" text-anchor="middle">FX</text>
+        <text x="371.0" y="192" fill="#0F2547" font-size="9" font-family="'Geist', sans-serif" font-weight="600" text-anchor="middle">Un solo grafo</text>
+        <text x="371.0" y="204" fill="#9A6F0B" font-size="6.5" font-family="'Geist Mono', monospace" font-weight="400" text-anchor="middle">torch.where en lugar de .item() y de la máscara</text>
+        <text x="371.0" y="215" fill="#3B5B8C" font-size="6.5" font-family="'Geist Mono', monospace" font-weight="400" text-anchor="middle">bucket estático de 64 + máscara de padding</text>
+        <text x="664" y="192" fill="#9A6F0B" font-size="9" font-family="'Geist', sans-serif" font-weight="600" text-anchor="middle">1 grafo</text>
+        <text x="664" y="206" fill="#3B5B8C" font-size="7" font-family="'Geist Mono', monospace" font-weight="400" text-anchor="middle">0 recompilaciones</text>
+        <text x="664" y="218" fill="#3B5B8C" font-size="7" font-family="'Geist Mono', monospace" font-weight="400" text-anchor="middle">tras el warmup</text>
+        <text x="364" y="278" fill="#0F2547" font-size="7" font-family="'Geist Mono', monospace" font-weight="400" text-anchor="middle">Orden fijo de las trampas: 1 .item() a mitad del paso, 2 máscara booleana, 3 longitudes variables</text>
+        <text x="364" y="294" fill="#3B5B8C" font-size="7" font-family="'Geist Mono', monospace" font-weight="400" text-anchor="middle">Medido en CPU con torch._dynamo.explain y un backend que cuenta grafos; paridad de loss 1.8e-07</text>
+      </svg>

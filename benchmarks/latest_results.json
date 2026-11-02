@@ -2,68 +2,128 @@
   "environment": {
     "torch_version": "2.15.0",
     "jax_version": "0.12.0.1",
-    "xla_devices": [
-      "cpu:0",
-      "cpu:1",
-      "cpu:2",
-      "cpu:3"
-    ]
+    "torch_tpu_installed": false,
+    "device": "cpu",
+    "compile_backend": "eager on CPU (FX graph executed by PyTorch; torch_tpu not installed)",
+    "platform": "Darwin arm64"
   },
-  "exp01_lazy_tensor": {
+  "exp01_eager_then_compile": {
+    "device": "cpu",
+    "backend": "eager on CPU (FX graph executed by PyTorch; torch_tpu not installed)",
     "steps": 6,
-    "uncached_compiles": 1,
-    "cached_compiles": 5,
-    "host_stalls": 0,
-    "initial_loss": 0.99999,
-    "final_loss": 0.946505
+    "graphs_compiled": 1,
+    "calls_reusing_graph": 5,
+    "graph_nodes": 13,
+    "graph_ops": [
+      "linear",
+      "gelu",
+      "linear",
+      "sub",
+      "pow",
+      "mean"
+    ],
+    "eager_losses": [
+      0.848638,
+      0.889036,
+      0.952191,
+      0.472322,
+      0.539147,
+      0.570684
+    ],
+    "compiled_losses": [
+      0.848638,
+      0.889036,
+      0.952191,
+      0.472322,
+      0.539147,
+      0.570684
+    ],
+    "eager_vs_compiled_max_abs_diff": 0.0,
+    "loss_decreased": true
   },
   "exp02_hunting_graph_breaks": {
-    "steps_executed": 5,
-    "uncached_compiles": 10,
-    "cached_compiles": 0,
-    "host_barrier_stalls": 10,
-    "aten_nonzero_fallbacks": 5
+    "device": "cpu",
+    "backend": "eager on CPU (FX graph executed by PyTorch; torch_tpu not installed)",
+    "graphs_per_call": 3,
+    "graph_breaks_per_call": 2,
+    "break_reasons": [
+      "host sync: Tensor.item()",
+      "data-dependent shape: aten::nonzero (boolean mask)"
+    ],
+    "steps": 5,
+    "graphs_compiled_over_steps": 11,
+    "new_graphs_per_step": [
+      3,
+      2,
+      2,
+      2,
+      2
+    ],
+    "masked_sizes_per_step": [
+      2075,
+      2074,
+      2143,
+      2058,
+      2041
+    ],
+    "eager_vs_compiled_abs_diff": 0.0
   },
-  "exp03_three_xla_traps_fixed": {
-    "steps": 6,
+  "exp03_three_traps_fixed": {
+    "device": "cpu",
+    "backend": "eager on CPU (FX graph executed by PyTorch; torch_tpu not installed)",
+    "seq_lengths": [
+      20,
+      33,
+      41,
+      52,
+      60,
+      20
+    ],
+    "static_bucket_len": 64,
     "naive": {
-      "uncached_compiles": 12,
-      "cached_compiles": 0,
-      "host_barrier_stalls": 12,
-      "aten_nonzero_fallbacks": 12,
-      "elapsed_ms": 11.651,
-      "losses": [
-        -0.027332,
-        -0.07813,
-        -0.169191,
-        -0.263467,
-        -0.347997,
-        -0.426458
-      ]
+      "graphs_per_call": 3,
+      "graph_breaks_per_call": 2,
+      "graphs_compiled_over_batches": 17
     },
-    "xla_optimized": {
-      "uncached_compiles": 1,
-      "cached_compiles": 5,
-      "recompiles_after_warmup": 0,
-      "host_barrier_stalls": 0,
-      "aten_nonzero_fallbacks": 0,
-      "elapsed_ms": 4.757,
-      "losses": [
-        -0.027332,
-        -0.07813,
-        -0.169191,
-        -0.263467,
-        -0.347997,
-        -0.426458
-      ]
+    "fixed": {
+      "graphs_per_call": 1,
+      "graph_breaks_per_call": 0,
+      "graphs_compiled_over_batches": 1,
+      "new_graphs_per_batch": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "recompiles_after_warmup": 0
     },
+    "padding_overhead_shortest_batch": 3.2,
     "numerical_parity": {
-      "allclose": true,
-      "max_abs_diff": 2.9802322387695312e-08
+      "naive_losses": [
+        0.936534,
+        0.916469,
+        0.967813,
+        1.267012,
+        1.170635,
+        1.089524
+      ],
+      "fixed_losses": [
+        0.936534,
+        0.916469,
+        0.967813,
+        1.267012,
+        1.170635,
+        1.089524
+      ],
+      "max_abs_diff": 1.7881393432617188e-07,
+      "allclose": true
     }
   },
-  "exp04_spmd_sharding_tpu": {
-    "num_xla_devices": 4,
+  "exp04_dtensor_mesh_sharding": {
+    "process_group_backend": "gloo (4 CPU processes)",
+    "world_size": 4,
     "mesh_shape": {
       "data": 2,
       "model": 2
@@ -74,34 +134,81 @@
         32,
         128
       ],
-      "w_up": [
-        128,
-        512
-      ],
-      "w_down": [
+      "up_weight": [
         512,
         128
+      ],
+      "down_weight": [
+        128,
+        512
       ]
     },
-    "per_device_shard_shapes": {
-      "x_shard": [
+    "per_rank_shapes": {
+      "x": [
         8,
         32,
         128
       ],
-      "w_up_shard": [
-        128,
-        256
-      ],
-      "w_down_shard": [
+      "up_weight": [
         256,
         128
+      ],
+      "down_weight": [
+        128,
+        256
       ]
     },
-    "spmd_parity_allclose": true,
-    "spmd_max_abs_diff": 7.748603820800781e-07
+    "forward_collectives": {
+      "all_reduce": 1
+    },
+    "max_abs_diff_vs_unsharded": 6.556510925292969e-07,
+    "all_ranks_allclose": true,
+    "ranks": [
+      {
+        "rank": 0,
+        "data": 0,
+        "model": 0
+      },
+      {
+        "rank": 1,
+        "data": 0,
+        "model": 1
+      },
+      {
+        "rank": 2,
+        "data": 1,
+        "model": 0
+      },
+      {
+        "rank": 3,
+        "data": 1,
+        "model": 1
+      }
+    ]
   },
-  "exp05_call_jax_from_pytorch": {
+  "exp05_torch_jax_dlpack_stablehlo": {
+    "zero_copy": {
+      "torch_to_jax_same_buffer": true,
+      "jax_to_torch_same_buffer": true,
+      "jit_output_to_torch_same_buffer": true
+    },
+    "stablehlo": {
+      "dialect_is_stablehlo": true,
+      "total_ops": 28,
+      "dot_general": 2,
+      "op_counts": {
+        "add": 3,
+        "broadcast_in_dim": 8,
+        "constant": 5,
+        "divide": 2,
+        "dot_general": 2,
+        "exponential": 1,
+        "multiply": 4,
+        "negate": 1,
+        "reduce": 1,
+        "rsqrt": 1
+      }
+    },
     "fwd_allclose": true,
     "bwd_allclose": true,
     "fwd_max_abs_diff": 2.384185791015625e-07,
@@ -114,6 +221,28 @@
       0.936393,
       0.892995
     ]
+  },
+  "checks": {
+    "exp01 one graph for six steps": true,
+    "exp01 eager == compiled losses": true,
+    "exp01 loss decreased": true,
+    "exp02 two graph breaks per call": true,
+    "exp02 breaks are .item() and the boolean mask": true,
+    "exp02 new graphs on every step": true,
+    "exp03 fixed step has 0 graph breaks": true,
+    "exp03 fixed step compiles once": true,
+    "exp03 0 recompiles after warmup": true,
+    "exp03 naive compiles more graphs than batches": true,
+    "exp03 naive and fixed losses match": true,
+    "exp04 mesh is data=2, model=2": true,
+    "exp04 per-rank shards are halves": true,
+    "exp04 one all_reduce in forward": true,
+    "exp04 every rank matches unsharded": true,
+    "exp05 forward parity": true,
+    "exp05 gradient parity": true,
+    "exp05 zero-copy both ways (CPU)": true,
+    "exp05 StableHLO with 2 dot_general": true,
+    "exp05 hybrid loss decreased": true
   },
   "all_verifications_passed": true
 }

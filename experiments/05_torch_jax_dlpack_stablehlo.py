@@ -1,16 +1,24 @@
-"""Experiment 05: Calling Compiled `@jax.jit` Kernels Inside PyTorch Autograd via DLPack.
+"""Experiment 05: PyTorch and JAX sharing memory through DLPack, and the StableHLO in between.
 
-Demonstrates zero-copy interoperability between PyTorch and JAX (`torch_xla2` / DLPack pattern):
-1. Converts `torch.Tensor` to `jax.Array` without copying memory via `torch.utils.dlpack.to_dlpack`
-   and `jax.dlpack.from_dlpack`.
-2. Executes a fused `@jax.jit` RMSNorm + SwiGLU kernel and captures its pullback with `jax.vjp`.
-3. Wraps both forward and backward passes inside a custom `torch.autograd.Function` so a
-   standard `torch.nn.Module` can train seamlessly with `loss.backward()` and `torch.optim.AdamW`.
-4. Verifies exact forward and backward gradient parity against a pure PyTorch reference.
+TorchTPU compiles a PyTorch graph by lowering it to StableHLO and handing it to XLA; JAX does
+the same with a `@jax.jit` function. StableHLO is the shared language of OpenXLA. This
+experiment runs on CPU and shows two things a PyTorch team can use today:
+
+1. A `torch.autograd.Function` whose forward and backward are a `@jax.jit` kernel
+   (RMSNorm + SwiGLU) and its `jax.vjp` pullback. Tensors cross between frameworks with
+   DLPack, and the judge checks that both sides point to the same buffer (zero-copy).
+2. Forward and gradient parity against pure PyTorch, plus five AdamW steps.
+3. The StableHLO module of that kernel (`jax.jit(...).lower(...).as_text()`), with its ops
+   counted: the program that XLA receives.
+
+Not covered here: DLPack between `torch_tpu` tensors and JAX on the same TPU. TorchTPU does
+not document it, so this experiment only claims CPU.
 """
 
 from __future__ import annotations
 
+import re
+from collections import Counter
 from typing import Any
 
 import jax
@@ -39,7 +47,7 @@ def _jax_fused_rmsnorm_swiglu(
     w_gate: jax.Array,
     w_val: jax.Array,
 ) -> jax.Array:
-    """Fused OpenXLA kernel computing RMSNorm(x) followed by SwiGLU projection."""
+    """RMSNorm(x) followed by a SwiGLU projection, compiled by XLA as one function."""
     eps = 1e-6
     variance = jnp.mean(jnp.square(x), axis=-1, keepdims=True)
     x_norm = x * jax.lax.rsqrt(variance + eps) * rms_weight
@@ -59,8 +67,40 @@ def _jax_fused_fwd_with_vjp(
     return jax.vjp(_jax_fused_rmsnorm_swiglu, x, rms_weight, w_gate, w_val)
 
 
+def zero_copy_check() -> dict[str, bool]:
+    """Checks that DLPack shares the buffer instead of copying it (CPU, contiguous tensors)."""
+    t = torch.randn(8, 32, 128)
+    a = _torch_to_jax(t)
+    back = _jax_to_torch(jnp.asarray(a))
+    out = _jax_fused_rmsnorm_swiglu(a, jnp.ones(128), jnp.zeros((128, 256)), jnp.zeros((128, 256)))
+    out_t = _jax_to_torch(out)
+    return {
+        "torch_to_jax_same_buffer": a.unsafe_buffer_pointer() == t.data_ptr(),
+        "jax_to_torch_same_buffer": back.data_ptr() == a.unsafe_buffer_pointer(),
+        "jit_output_to_torch_same_buffer": out_t.data_ptr() == out.unsafe_buffer_pointer(),
+    }
+
+
+def stablehlo_summary(d_model: int = 128, d_ff: int = 256) -> dict[str, Any]:
+    """Lowers the JAX kernel and counts the StableHLO ops XLA receives."""
+    shapes = (
+        jax.ShapeDtypeStruct((8, 32, d_model), jnp.float32),
+        jax.ShapeDtypeStruct((d_model,), jnp.float32),
+        jax.ShapeDtypeStruct((d_model, d_ff), jnp.float32),
+        jax.ShapeDtypeStruct((d_model, d_ff), jnp.float32),
+    )
+    text = _jax_fused_rmsnorm_swiglu.lower(*shapes).as_text()
+    ops = Counter(re.findall(r"stablehlo\.([a-z_]+)", text))
+    return {
+        "dialect_is_stablehlo": "stablehlo." in text,
+        "total_ops": int(sum(ops.values())),
+        "dot_general": int(ops.get("dot_general", 0)),
+        "op_counts": dict(sorted(ops.items())),
+    }
+
+
 class JAXFusedSwiGLUFunction(torch.autograd.Function):
-    """Bridges PyTorch autograd with a `@jax.jit` + `jax.vjp` OpenXLA kernel via DLPack."""
+    """Bridges PyTorch autograd with a `@jax.jit` + `jax.vjp` kernel via DLPack."""
 
     @staticmethod
     def forward(
@@ -167,7 +207,12 @@ def run_pytorch_jax_bridge_demo() -> dict[str, Any]:
         step_losses.append(round(float(loss.item()), 6))
         print(f"[Hybrid PyTorch+JAX Step {step}] loss={step_losses[-1]:.6f}")
 
+    copy_check = zero_copy_check()
+    hlo = stablehlo_summary(d_model, d_ff)
+
     summary = {
+        "zero_copy": copy_check,
+        "stablehlo": hlo,
         "fwd_allclose": fwd_allclose,
         "bwd_allclose": bwd_allclose,
         "fwd_max_abs_diff": fwd_diff,
@@ -180,9 +225,15 @@ def run_pytorch_jax_bridge_demo() -> dict[str, Any]:
         f"Backward Parity allclose: {bwd_allclose} "
         f"(grad_x_diff={grad_x_diff:.2e}, grad_w_gate_diff={grad_w_gate_diff:.2e})"
     )
+    print(f"Zero-copy (same buffer): {copy_check}")
+    print(
+        f"StableHLO module: {hlo['total_ops']} ops, {hlo['dot_general']} dot_general "
+        f"(the two matmuls)"
+    )
+    print(f"StableHLO op counts: {hlo['op_counts']}")
     return summary
 
 
 if __name__ == "__main__":
-    print("=== Experiment 05: Zero-Copy PyTorch <-> JAX Autograd Bridge (DLPack + jax.vjp) ===")
+    print("=== Experiment 05: PyTorch <-> JAX via DLPack, and the StableHLO in between ===")
     run_pytorch_jax_bridge_demo()

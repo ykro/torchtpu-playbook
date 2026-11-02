@@ -1,41 +1,76 @@
-======================================================================
- PyTorch/XLA & OpenXLA TPU Playbook — Outside Judge Verification Suite
-======================================================================
-PyTorch Version : 2.15.0
-JAX Version     : 0.12.0.1
-OpenXLA Devices : ['cpu:0', 'cpu:1', 'cpu:2', 'cpu:3']
-Platform        : macOS-26.6.2-arm64-arm-64bit
+==========================================================================
+ OUTSIDE JUDGE: torchtpu-playbook (PyTorch on Cloud TPU with TorchTPU)
+==========================================================================
+PyTorch        : 2.15.0
+JAX            : 0.12.0.1
+torch_tpu found: False
+Device         : cpu
+Compile backend: eager on CPU (FX graph executed by PyTorch; torch_tpu not installed)
+Platform       : Darwin arm64
 
---- [1/5] Experiment 01: LazyTensor & mark_step() in 5 Lines ---
-[Step 0] PendingIROps before barrier=134 | Pending after=0 | UncachedCompile=1 | CachedCompile=0 | Loss=0.999990
-[Step 1] PendingIROps before barrier=122 | Pending after=0 | UncachedCompile=1 | CachedCompile=1 | Loss=0.993131
-[Step 2] PendingIROps before barrier=122 | Pending after=0 | UncachedCompile=1 | CachedCompile=2 | Loss=0.984461
-[Step 3] PendingIROps before barrier=122 | Pending after=0 | UncachedCompile=1 | CachedCompile=3 | Loss=0.973455
-[Step 4] PendingIROps before barrier=122 | Pending after=0 | UncachedCompile=1 | CachedCompile=4 | Loss=0.960258
-[Step 5] PendingIROps before barrier=122 | Pending after=0 | UncachedCompile=1 | CachedCompile=5 | Loss=0.946505
+--- [1/5] Eager first, then torch.compile ---
+Device  : cpu
+Backend : eager on CPU (FX graph executed by PyTorch; torch_tpu not installed)
+[step 0] eager loss=0.848638 | compiled loss=0.848638
+[step 1] eager loss=0.889036 | compiled loss=0.889036
+[step 2] eager loss=0.952191 | compiled loss=0.952191
+[step 3] eager loss=0.472322 | compiled loss=0.472322
+[step 4] eager loss=0.539147 | compiled loss=0.539147
+[step 5] eager loss=0.570684 | compiled loss=0.570684
+Graphs handed to the backend: 1 (13 FX nodes: linear, gelu, linear, sub, pow, mean)
+Calls that reused the cached graph: 5
+Eager vs compiled max |diff|: 0.00e+00
+  [PASS] exp01 one graph for six steps
+  [PASS] exp01 eager == compiled losses
+  [PASS] exp01 loss decreased
 
---- [2/5] Experiment 02: Hunting Graph Breaks with XLA Metrics ---
-[Naive Step 0 | seq_len=19] loss=0.12489 | UncachedCompile=2 | HostStalls=2 | AtenNonzero=1
-[Naive Step 1 | seq_len=27] loss=0.06406 | UncachedCompile=4 | HostStalls=4 | AtenNonzero=2
-[Naive Step 2 | seq_len=33] loss=-0.02248 | UncachedCompile=6 | HostStalls=6 | AtenNonzero=3
-[Naive Step 3 | seq_len=41] loss=-0.07806 | UncachedCompile=8 | HostStalls=8 | AtenNonzero=4
-[Naive Step 4 | seq_len=52] loss=-0.16739 | UncachedCompile=10 | HostStalls=10 | AtenNonzero=5
+--- [2/5] Hunting graph breaks ---
+Device  : cpu
+Backend : eager on CPU (FX graph executed by PyTorch; torch_tpu not installed)
+torch._dynamo.explain: 3 graphs, 2 graph breaks per call
+  break 1: host sync: Tensor.item()
+  break 2: data-dependent shape: aten::nonzero (boolean mask)
+Graphs handed to the backend over 5 steps: 11
+  new graphs per step: [3, 2, 2, 2, 2]
+  size of h[h > 0] per step: [2075, 2074, 2143, 2058, 2041] (a new shape every step)
+Loss is still correct (eager vs compiled |diff|): 0.00e+00
+  [PASS] exp02 two graph breaks per call
+  [PASS] exp02 breaks are .item() and the boolean mask
+  [PASS] exp02 new graphs on every step
 
---- [3/5] Experiment 03: Fixing the 3 Classic XLA Traps ---
-[Trap Fix Summary] Naive UncachedCompile=12 -> Optimized UncachedCompile=1 (Recompiles after warmup=0)
-[Trap Fix Summary] Naive HostStalls=12 -> Optimized HostStalls=0
-[Trap Fix Summary] Naive AtenNonzero=12 -> Optimized AtenNonzero=0
-[Trap Fix Summary] Numerical Parity allclose=True (max_abs_diff=2.98e-08)
+--- [3/5] The three traps fixed ---
+Device  : cpu
+Backend : eager on CPU (FX graph executed by PyTorch; torch_tpu not installed)
+Sequence lengths per batch: [20, 33, 41, 52, 60, 20] -> static bucket 64
+[naive] 3 graphs and 2 breaks per call; 17 graphs compiled over 6 batches
+[fixed] 1 graph and 0 breaks per call; 1 graph compiled over 6 batches (new graphs per batch: [1, 0, 0, 0, 0, 0])
+Recompiles after warmup (fixed): 0
+Padding cost: the batch of length 20 is processed with 64 positions (3.2x)
+Loss parity naive vs fixed: allclose=True (max |diff|=1.79e-07)
+  [PASS] exp03 fixed step has 0 graph breaks
+  [PASS] exp03 fixed step compiles once
+  [PASS] exp03 0 recompiles after warmup
+  [PASS] exp03 naive compiles more graphs than batches
+  [PASS] exp03 naive and fixed losses match
 
---- [4/5] Experiment 04: OpenXLA GSPMD Sharding Across 4 Devices ---
-OpenXLA Devices Visible : 4 (['cpu:0', 'cpu:1', 'cpu:2', 'cpu:3'])
-GSPMD Mesh Shape        : data=2, model=2
-Input x Global -> Shard : [16, 32, 128] -> [8, 32, 128] P('data', None, None)
-w_up Global    -> Shard : [128, 512] -> [128, 256] P(None, 'model')
-w_down Global  -> Shard : [512, 128] -> [256, 128] P('model', None)
-SPMD Parity allclose    : True (max_abs_diff=7.75e-07)
+--- [4/5] DeviceMesh + DTensor on a 2x2 mesh ---
+Process group : gloo (4 CPU processes)
+Mesh          : {'data': 2, 'model': 2}
+  rank 0 -> data=0, model=0
+  rank 1 -> data=0, model=1
+  rank 2 -> data=1, model=0
+  rank 3 -> data=1, model=1
+x           global [16, 32, 128] -> per rank [8, 32, 128] (split over 'data')
+up.weight   global [512, 128] -> per rank [256, 128] (columns, 'model')
+down.weight global [128, 512] -> per rank [128, 256] (rows, 'model')
+Collectives in forward: {'all_reduce': 1}
+Every rank matches the unsharded model: True (max |diff|=6.56e-07)
+  [PASS] exp04 mesh is data=2, model=2
+  [PASS] exp04 per-rank shards are halves
+  [PASS] exp04 one all_reduce in forward
+  [PASS] exp04 every rank matches unsharded
 
---- [5/5] Experiment 05: Zero-Copy PyTorch <-> JAX Autograd Bridge ---
+--- [5/5] PyTorch <-> JAX via DLPack, and StableHLO ---
 [Hybrid PyTorch+JAX Step 0] loss=1.000893
 [Hybrid PyTorch+JAX Step 1] loss=0.985589
 [Hybrid PyTorch+JAX Step 2] loss=0.965895
@@ -44,7 +79,15 @@ SPMD Parity allclose    : True (max_abs_diff=7.75e-07)
 
 Forward Parity allclose : True (max_abs_diff=2.38e-07)
 Backward Parity allclose: True (grad_x_diff=2.91e-11, grad_w_gate_diff=5.82e-11)
+Zero-copy (same buffer): {'torch_to_jax_same_buffer': True, 'jax_to_torch_same_buffer': True, 'jit_output_to_torch_same_buffer': True}
+StableHLO module: 28 ops, 2 dot_general (the two matmuls)
+StableHLO op counts: {'add': 3, 'broadcast_in_dim': 8, 'constant': 5, 'divide': 2, 'dot_general': 2, 'exponential': 1, 'multiply': 4, 'negate': 1, 'reduce': 1, 'rsqrt': 1}
+  [PASS] exp05 forward parity
+  [PASS] exp05 gradient parity
+  [PASS] exp05 zero-copy both ways (CPU)
+  [PASS] exp05 StableHLO with 2 dot_general
+  [PASS] exp05 hybrid loss decreased
 
-======================================================================
- ALL OUTSIDE JUDGE VERIFICATIONS PASSED (0 RECOMPILES AFTER WARMUP)   
-======================================================================
+==========================================================================
+ VERIFICATION STATUS: PASS (20/20 checks in 17.8s)
+==========================================================================

@@ -1,134 +1,105 @@
-# PyTorch/XLA & OpenXLA on Cloud TPU Playbook (`pytorch-xla-tpu-playbook`)
+# TorchTPU Playbook, PyTorch nativo en Cloud TPU (`torchtpu-playbook`)
 
-- **Por qué es relevante:** Permite llevar modelos existentes de PyTorch a Cloud TPU y OpenXLA sin reescribir el proyecto desde cero, eliminando las trampas de recompilación y sincronización que degradan el rendimiento en aceleradores XLA.
-- **Para quién es:** Ingenieros de Machine Learning y sistemas que entrenan o sirven modelos en PyTorch y necesitan escalar cargas en Cloud TPU v5e o intercalar kernels compilados de JAX dentro de `torch.autograd`.
-- **Quién debería verlo:** Equipos con código en producción sobre `torch.nn.Module` que evalúan TPUs en Google Cloud o buscan interoperabilidad zero-copy entre PyTorch y JAX mediante DLPack.
-- **Parte de la serie:** [JAX, OpenXLA & Cloud TPU Field Guide](https://github.com/ykro/jax-openxla-field-guide)
+- **Por qué es relevante:** desde 2026 la forma oficial de correr PyTorch en Cloud TPU es [TorchTPU](https://github.com/google-pytorch/torch_tpu), un backend nativo de PyTorch (`torch.device("tpu")`, `torch.compile(backend="tpu")`, `torch.distributed` con `tpu_dist`). Tu código PyTorch se queda como está. Lo que decide si una TPU rinde es que el paso de entrenamiento se pueda compilar como un grafo estable, con formas estáticas y sin viajes al host a mitad del paso.
+- **Para quién es:** ingenieros que entrenan o sirven modelos en PyTorch y evalúan Cloud TPU, o que quieren mezclar un kernel de JAX dentro de `torch.autograd`.
+- **Qué vas a aprender:** los dos modos de TorchTPU (eager y `torch.compile`), cómo cazar graph breaks con `torch._dynamo.explain`, las tres trampas que obligan a recompilar y cómo se corrigen, sharding declarado con `DeviceMesh` + DTensor, y el puente PyTorch y JAX con DLPack sobre StableHLO, el idioma común de OpenXLA.
+- **Parte de la serie:** [JAX & OpenXLA Field Guide](https://github.com/ykro/jax-openxla-field-guide) (episodio A5, cierre de la Serie A).
 
----
-
-## Arquitectura y Flujo en OpenXLA
-
-### 1. Acumulación en `LazyTensor` y Barrera Explícita `mark_step()`
-
-En lugar de enviar cada operación individualmente como ocurre en el modo eager de CUDA, PyTorch/XLA acumula operaciones en un grafo intermedio (`LazyTensor` IR) y corta el grafo únicamente al encontrar `xm.mark_step()` o una lectura síncrona hacia el host (`.item()`).
-
-![Secuencia de ejecución LazyTensor vs bloqueo por .item()](diagrams/01-lazy-tensor-sequence.svg)
-
-### 2. Eliminando las 3 Trampas Clásicas de XLA
-
-El traslado directo de un ciclo de entrenamiento de GPU a TPU suele sufrir tres cuellos de botella silenciosos, a saber, lecturas `.item()` a mitad del paso, indexación booleana dinámica `h[h > 0]` que cae a CPU mediante `aten::nonzero` y longitudes de secuencia variables sin padding estático.
-
-![Delta de arquitectura entre PyTorch naive y PyTorch optimizado para OpenXLA](diagrams/02-naive-vs-xla-optimized.svg)
-
-### 3. Puente Zero-Copy entre PyTorch `autograd` y `@jax.jit`
-
-Cuando un bloque crítico se beneficia de fusión agresiva en XLA (por ejemplo, `RMSNorm + SwiGLU`), es posible envolver un kernel `@jax.jit` y su gradiente `jax.vjp` dentro de un `torch.autograd.Function` transfiriendo punteros de memoria sin copia vía `torch.utils.dlpack` y `jax.dlpack`.
-
-![Flujo de datos zero-copy entre PyTorch autograd y JAX vía DLPack](diagrams/03-pytorch-jax-bridge.svg)
+> **Antecedente.** Este repo se llamaba `pytorch-xla-tpu-playbook` y usaba PyTorch/XLA (`torch_xla`). Ese proyecto está deprecado y su repo se archiva el 15 de noviembre de 2026; el banner de [github.com/pytorch/xla](https://github.com/pytorch/xla) pide empezar con TorchTPU y migrar. Aquí ya no queda código de `torch_xla`.
 
 ---
 
-## Experimentos Incluidos
+## Qué es TorchTPU (fuentes primarias)
 
-| Script | Qué demuestra | Resultado Verificado |
+| Tema | Lo que dice la documentación | Fuente |
 |---|---|---|
-| `experiments/01_lazy_tensor_5_lines.py` | Migrar un ciclo de entrenamiento PyTorch a `xla_device()` con `mark_step()` y `add_step_closure()`. | `UncachedCompile=1`, `CachedCompile=5`, `HostStalls=0`, pérdida baja de `0.999990` a `0.946505`. |
-| `experiments/02_hunting_graph_breaks.py` | Auditar un modelo PyTorch naive con `metrics_report()` para detectar graph breaks y fallbacks. | Detecta `10 UncachedCompile`, `10 HostStalls` y `5 aten::nonzero` en 5 pasos. |
-| `experiments/03_three_xla_traps_fixed.py` | Corregir `.item()`, `h[h > 0]` y shapes variables con `add_step_closure`, `torch.where` y buckets estáticos. | Recompilaciones tras warmup bajan de `11` a `0`; `torch.allclose=True` (`max_abs_diff=2.98e-08`). |
-| `experiments/04_spmd_sharding_tpu.py` | Particionado automático GSPMD (`Mesh(2, 2)` en ejes `data` y `model`) sobre 4 dispositivos OpenXLA. | Shards `[8, 32, 128]` y `[128, 256]`; paridad exacta `allclose=True` (`max_abs_diff=7.75e-07`). |
-| `experiments/05_call_jax_from_pytorch.py` | Interoperabilidad zero-copy PyTorch ↔ JAX con DLPack, `@jax.jit` y `jax.vjp` dentro de `torch.autograd.Function`. | Paridad forward (`2.38e-07`) y backward (`2.91e-11`); entrenamiento con `AdamW` converge de `1.000893` a `0.892995`. |
+| Qué es | Backend de PyTorch fuera del árbol, registrado como `PrivateUse1` y renombrado a `tpu`; código abierto (Apache 2.0) por Google y el equipo de PyTorch de Meta. Reemplaza a PyTorch/XLA. | [docs.cloud.google.com/tpu/docs/pytorch-on-tpu](https://docs.cloud.google.com/tpu/docs/pytorch-on-tpu), [How TorchTPU works](https://torchtpu.readthedocs.io/en/latest/how_torchtpu_works/) |
+| Instalación | `pip install torch_tpu==0.2.0 --extra-index-url https://download.pytorch.org/whl/cpu`, Python 3.11+. En PyPI solo hay wheels `manylinux_2_31_x86_64`: no se instala en macOS. | [README de torch_tpu](https://github.com/google-pytorch/torch_tpu), [PyPI](https://pypi.org/project/torch-tpu/) |
+| Eager | Modo por defecto (strict eager). `TORCH_TPU_LAUNCH_BLOCKING=1` para depurar y `TORCH_TPU_DEFER_AND_FUSE=1` para fusionar secuencias de ops. | [Execution model](https://torchtpu.readthedocs.io/en/latest/torchtpu_execution_model/) |
+| Compilado | `torch.compile(model, backend="tpu")`: TorchDynamo entrega un grafo FX, el backend genera un programa StableHLO y XLA lo compila (no usa TorchInductor). Cache de ejecutables en tres niveles. | [How TorchTPU works](https://torchtpu.readthedocs.io/en/latest/how_torchtpu_works/) |
+| Formas dinámicas | Bounded dynamism con buckets (`mark_dynamic(..., min=..., max=...)`, `bucket_size`); `dynamic=True` no está soportado; ops como `torch.nonzero` no están soportadas para formas dinámicas. | [Dynamic shapes](https://torchtpu.readthedocs.io/en/latest/dynamic_shapes/) |
+| Sincronizaciones | `if my_tensor.all()` o `torch.masked_select` fuerzan una sincronización y, en modo compilado, un graph break. | [Execution model](https://torchtpu.readthedocs.io/en/latest/torchtpu_execution_model/) |
+| Distribuido | Process group `tpu_dist`; DDP, FSDP2 y DTensor; `DeviceMesh("tpu", ...)` y `torch.tpu.distributed.topology_aware_mesh`. | [Distributed support](https://torchtpu.readthedocs.io/en/latest/distributed_support/) |
+| Estado | Versión pública 0.2.0. La tabla de features marca como Validated v5e, v5p, v6e y v7, y como Experimental FSDPv2 y SymInts, entre otros. | [Feature set](https://torchtpu.readthedocs.io/en/latest/feature_set/) |
+
+No hay mención de DLPack ni de interoperabilidad con JAX en la documentación de TorchTPU; por eso el experimento 05 solo afirma lo que corre en CPU.
 
 ---
 
-## Onboarding y Ejecución Paso a Paso (Local y Cloud TPU v5e)
+## Arquitectura
 
-### 1. Instalación desde cero
+![El mismo código PyTorch, dos caminos hacia la TPU](diagrams/01-torchtpu-two-paths.png)
+
+El camino compilado es el que importa para rendimiento: Dynamo convierte tu función en un grafo FX y el backend lo baja a StableHLO. Si el grafo se parte o cambia de forma en cada paso, el compilador trabaja de nuevo.
+
+![Graph breaks del paso ingenuo contra el paso corregido](diagrams/02-graph-breaks-vs-fixed.png)
+
+![Sharding declarado con DeviceMesh y DTensor](diagrams/03-dtensor-mesh-2x2.png)
+
+![Puente PyTorch y JAX con DLPack sobre StableHLO](diagrams/04-pytorch-jax-bridge.png)
+
+---
+
+## Experimentos
+
+| Script | Qué demuestra | Resultado medido (CPU) |
+|---|---|---|
+| `experiments/01_eager_then_compile.py` | El mismo paso de entrenamiento, eager y con `torch.compile`, desde los mismos pesos. | 1 grafo para 6 pasos (5 reutilizaciones); losses eager y compilado idénticas (diferencia 0); la loss baja de `0.849` a `0.571`. |
+| `experiments/02_hunting_graph_breaks.py` | Un paso que parece inofensivo, auditado con `torch._dynamo.explain`. | 3 grafos y 2 graph breaks por llamada: `.item()` y la máscara `h[h > 0]` (`aten::nonzero`). 11 grafos en 5 pasos: el grafo de después de la máscara recibe un tamaño distinto en cada paso. |
+| `experiments/03_three_traps_fixed.py` | Las tres trampas corregidas en orden: `.item()`, máscara booleana, longitudes variables. | Ingenuo: 17 grafos en 6 batches de longitudes 20 a 60. Corregido: 1 grafo, 0 breaks, 0 recompilaciones tras el warmup; misma loss (`max diff 1.8e-07`). Costo: el batch de 20 se procesa con 64 posiciones (3.2x). |
+| `experiments/04_dtensor_mesh_sharding.py` | `DeviceMesh` (2, 2) `('data', 'model')` con un MLP estilo Megatron (`ColwiseParallel` + `RowwiseParallel`). | 4 procesos CPU con `gloo`; cada rank guarda la mitad de cada matriz (`[256, 128]` y `[128, 256]`); `CommDebugMode` cuenta 1 `all_reduce` en el forward; paridad con el modelo sin particionar `6.6e-07`. |
+| `experiments/05_torch_jax_dlpack_stablehlo.py` | Un kernel `@jax.jit` + `jax.vjp` dentro de `torch.autograd.Function` vía DLPack, y su módulo StableHLO. | Mismo buffer en ambos sentidos (CPU); paridad forward `2.4e-07` y gradientes `2.9e-11`; 5 pasos de AdamW de `1.0009` a `0.8930`; el módulo StableHLO tiene 28 ops y 2 `dot_general`. |
+
+Juez externo: `verify_torchtpu_playbook.py` corre los cinco experimentos, verifica 20 invariantes y escribe `benchmarks/latest_results.json` y `benchmarks/terminal_output.txt`.
+
+### Cómo leer estas cifras
+
+- **Backend honesto.** En la laptop `torch_tpu` no se puede instalar (solo hay wheels para Linux x86_64). Los experimentos detectan eso y usan `device=cpu` y un backend de `torch.compile` propio, `GraphRecorder`, que registra cada grafo FX que Dynamo le entrega y lo ejecuta con PyTorch en eager. El JSON lo dice en `environment.compile_backend`.
+- **Qué cuenta y qué no.** Las cifras de grafos, graph breaks y recompilaciones salen de TorchDynamo, la misma pieza que usa `torch.compile(backend="tpu")` antes de llegar a StableHLO. Son conteos reales de PyTorch. Lo que no se mide es lo que pasa después: cuánto tarda XLA en compilar, cuánto tarda la TPU en ejecutar o qué hace TorchTPU en modo eager con estas trampas.
+- **Cero tiempos.** El repo no reporta milisegundos. En CPU con un backend eager, el tiempo no dice nada de una TPU.
+- **`dynamic=False` a propósito.** Se compila con formas estáticas, que es lo que XLA espera. TorchTPU ofrece además bounded dynamism con buckets; no se probó aquí y el bucket manual del experimento 03 es la versión portable de la misma idea.
+- **Sharding en CPU.** El experimento 04 usa `torch.distributed` con `gloo` y 4 procesos. En una TPU el cambio documentado es `backend="tpu_dist"` y `DeviceMesh("tpu", ...)`; ese camino está en el script de GCP y no se corrió.
+- **Zero-copy solo en CPU.** La comparación de punteros del experimento 05 se hizo con tensores contiguos de CPU. No se verificó DLPack entre tensores de `torch_tpu` y JAX en una TPU.
+- **Datos de juguete.** Modelos de dos capas y datos aleatorios con semilla fija: las cifras son deterministas y sirven para ver el mecanismo, no la calidad de un modelo.
+
+---
+
+## Cómo correrlo
 
 ```bash
-git clone https://github.com/ykro/pytorch-xla-tpu-playbook.git
-cd pytorch-xla-tpu-playbook
-python3 -m venv .venv
-source .venv/bin/activate
-pip install --upgrade pip
+git clone https://github.com/ykro/torchtpu-playbook.git
+cd torchtpu-playbook
+python3 -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
+make all        # ruff + pytest + juez externo
+make exp03      # o cualquier experimento suelto
 ```
 
-### 2. Recorrido guiado en orden (`01` a `05` + Juez Externo)
+### En una Cloud TPU v6e (no corrido)
+
+`gcp/run_torchtpu_v6e.sh` crea una TPU VM `v6e-4` on-demand, instala `torch_tpu==0.2.0`, corre los experimentos 01 a 04 con `device=tpu` y borra la VM al salir (`trap cleanup EXIT`). Necesita `PROJECT_ID`. Se escribió a partir de la documentación de TorchTPU y todavía no se ejecutó; ninguna cifra de este README viene de una TPU.
 
 ```bash
-# Ejecutar cada experimento individualmente en orden progresivo
-make exp01   # LazyTensor y barrera explícita mark_step() en 5 líneas
-make exp02   # Diagnóstico de graph breaks y aten::nonzero con métricas XLA
-make exp03   # Corrección de las 3 trampas clásicas de XLA (0 recompilaciones extra)
-make exp04   # Particionado GSPMD 2D (data, model) sobre 4 dispositivos OpenXLA
-make exp05   # Puente zero-copy PyTorch autograd <-> @jax.jit vía DLPack
-
-# Ejecutar linter, suite pytest y el juez externo verify_playbook.py
-make all
-```
-
-### 3. Ejecución on-demand en Cloud TPU v5e
-
-Para aprovisionar una VM on-demand de Cloud TPU v5e (`v5litepod-4` con runtime `v2-alpha-tpuv5-lite`) en tu propio proyecto de Google Cloud (variable `PROJECT_ID`), correr la suite completa, descargar el reporte de métricas y destruir la TPU automáticamente al salir (`trap cleanup EXIT`), se incluye el script `gcp/run_tpu_pytorch_xla.sh`.
-
-```bash
-bash gcp/run_tpu_pytorch_xla.sh
+PROJECT_ID=tu-proyecto ./gcp/run_torchtpu_v6e.sh
 ```
 
 ---
 
-## Salida Real de Verificación (`verify_playbook.py`)
+## Estructura
 
 ```text
-======================================================================
- PyTorch/XLA & OpenXLA TPU Playbook — Outside Judge Verification Suite
-======================================================================
-PyTorch Version : 2.15.0
-JAX Version     : 0.12.0.1
-OpenXLA Devices : ['cpu:0', 'cpu:1', 'cpu:2', 'cpu:3']
-Platform        : macOS-26.6.2-arm64-arm-64bit
-
---- [1/5] Experiment 01: LazyTensor & mark_step() in 5 Lines ---
-[Step 0] PendingIROps before barrier=134 | Pending after=0 | UncachedCompile=1 | CachedCompile=0 | Loss=0.999990
-[Step 1] PendingIROps before barrier=122 | Pending after=0 | UncachedCompile=1 | CachedCompile=1 | Loss=0.993131
-[Step 2] PendingIROps before barrier=122 | Pending after=0 | UncachedCompile=1 | CachedCompile=2 | Loss=0.984461
-[Step 3] PendingIROps before barrier=122 | Pending after=0 | UncachedCompile=1 | CachedCompile=3 | Loss=0.973455
-[Step 4] PendingIROps before barrier=122 | Pending after=0 | UncachedCompile=1 | CachedCompile=4 | Loss=0.960258
-[Step 5] PendingIROps before barrier=122 | Pending after=0 | UncachedCompile=1 | CachedCompile=5 | Loss=0.946505
-
---- [2/5] Experiment 02: Hunting Graph Breaks with XLA Metrics ---
-[Naive Step 0 | seq_len=19] loss=0.12489 | UncachedCompile=2 | HostStalls=2 | AtenNonzero=1
-[Naive Step 1 | seq_len=27] loss=0.06406 | UncachedCompile=4 | HostStalls=4 | AtenNonzero=2
-[Naive Step 2 | seq_len=33] loss=-0.02248 | UncachedCompile=6 | HostStalls=6 | AtenNonzero=3
-[Naive Step 3 | seq_len=41] loss=-0.07806 | UncachedCompile=8 | HostStalls=8 | AtenNonzero=4
-[Naive Step 4 | seq_len=52] loss=-0.16739 | UncachedCompile=10 | HostStalls=10 | AtenNonzero=5
-
---- [3/5] Experiment 03: Fixing the 3 Classic XLA Traps ---
-[Trap Fix Summary] Naive UncachedCompile=12 -> Optimized UncachedCompile=1 (Recompiles after warmup=0)
-[Trap Fix Summary] Naive HostStalls=12 -> Optimized HostStalls=0
-[Trap Fix Summary] Naive AtenNonzero=12 -> Optimized AtenNonzero=0
-[Trap Fix Summary] Numerical Parity allclose=True (max_abs_diff=2.98e-08)
-
---- [4/5] Experiment 04: OpenXLA GSPMD Sharding Across 4 Devices ---
-OpenXLA Devices Visible : 4 (['cpu:0', 'cpu:1', 'cpu:2', 'cpu:3'])
-GSPMD Mesh Shape        : data=2, model=2
-Input x Global -> Shard : [16, 32, 128] -> [8, 32, 128] P('data', None, None)
-w_up Global    -> Shard : [128, 512] -> [128, 256] P(None, 'model')
-w_down Global  -> Shard : [512, 128] -> [256, 128] P('model', None)
-SPMD Parity allclose    : True (max_abs_diff=7.75e-07)
-
---- [5/5] Experiment 05: Zero-Copy PyTorch <-> JAX Autograd Bridge ---
-[Hybrid PyTorch+JAX Step 0] loss=1.000893
-[Hybrid PyTorch+JAX Step 1] loss=0.985589
-[Hybrid PyTorch+JAX Step 2] loss=0.965895
-[Hybrid PyTorch+JAX Step 3] loss=0.936393
-[Hybrid PyTorch+JAX Step 4] loss=0.892995
-
-Forward Parity allclose : True (max_abs_diff=2.38e-07)
-Backward Parity allclose: True (grad_x_diff=2.91e-11, grad_w_gate_diff=5.82e-11)
-
-======================================================================
- ALL OUTSIDE JUDGE VERIFICATIONS PASSED (0 RECOMPILES AFTER WARMUP)   
-======================================================================
+experiments/
+  tpu_backend.py                    # device, backend y GraphRecorder
+  01_eager_then_compile.py
+  02_hunting_graph_breaks.py
+  03_three_traps_fixed.py
+  04_dtensor_mesh_sharding.py
+  05_torch_jax_dlpack_stablehlo.py
+tests/test_torchtpu_playbook.py
+verify_torchtpu_playbook.py         # juez externo
+benchmarks/                         # salida del juez (CPU)
+diagrams/                           # fuentes HTML + SVG + PNG
+gcp/run_torchtpu_v6e.sh             # TPU on-demand con auto-teardown (no corrido)
 ```
+
+Entorno de la corrida publicada: PyTorch 2.15.0, JAX 0.12.0.1, Python 3.12, macOS arm64, CPU.
