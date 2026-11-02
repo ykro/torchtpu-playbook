@@ -6,7 +6,7 @@
 
 set -euo pipefail
 
-PROJECT_ID="${PROJECT_ID:-ai-experiments-487722}"
+PROJECT_ID="${PROJECT_ID:?Set PROJECT_ID to your Google Cloud project id}"
 ZONE="${ZONE:-us-central1-a}"
 TPU_NAME="${TPU_NAME:-pytorch-xla-playbook-$(date +%s)}"
 ACCELERATOR_TYPE="${ACCELERATOR_TYPE:-v5litepod-4}"

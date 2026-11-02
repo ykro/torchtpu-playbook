@@ -68,9 +68,9 @@ make exp05   # Puente zero-copy PyTorch autograd <-> @jax.jit vía DLPack
 make all
 ```
 
-### 3. Ejecución on-demand en Cloud TPU v5e (`ai-experiments-487722`)
+### 3. Ejecución on-demand en Cloud TPU v5e
 
-Para aprovisionar una VM on-demand de Cloud TPU v5e (`v5litepod-4` con runtime `v2-alpha-tpuv5-lite`) en el proyecto `ai-experiments-487722`, correr la suite completa, descargar el reporte de métricas y destruir la TPU automáticamente al salir (`trap cleanup EXIT`), se incluye el script `gcp/run_tpu_pytorch_xla.sh`.
+Para aprovisionar una VM on-demand de Cloud TPU v5e (`v5litepod-4` con runtime `v2-alpha-tpuv5-lite`) en tu propio proyecto de Google Cloud (variable `PROJECT_ID`), correr la suite completa, descargar el reporte de métricas y destruir la TPU automáticamente al salir (`trap cleanup EXIT`), se incluye el script `gcp/run_tpu_pytorch_xla.sh`.
 
 ```bash
 bash gcp/run_tpu_pytorch_xla.sh
