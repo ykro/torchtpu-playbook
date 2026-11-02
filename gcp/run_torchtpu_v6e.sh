@@ -15,7 +15,9 @@
 set -euo pipefail
 
 PROJECT_ID="${PROJECT_ID:?Set PROJECT_ID to your Google Cloud project id}"
-ZONE="${ZONE:-us-east5-b}"
+ZONE="${ZONE:-europe-west4-a}"
+# Spot by default: most projects get v6e quota only for spot capacity. SPOT=0 for on-demand.
+SPOT="${SPOT:-1}"
 TPU_NAME="${TPU_NAME:-torchtpu-playbook-$(date +%s)}"
 ACCELERATOR_TYPE="${ACCELERATOR_TYPE:-v6e-4}"
 RUNTIME_VERSION="${RUNTIME_VERSION:-v2-alpha-tpuv6e}"
@@ -30,10 +32,11 @@ trap cleanup EXIT INT TERM
 
 mkdir -p "${ARTIFACT_DIR}"
 
-echo "[1/4] Creating on-demand TPU VM ${TPU_NAME} (${ACCELERATOR_TYPE}, ${RUNTIME_VERSION})..."
+SPOT_FLAG=""; [ "${SPOT}" = "1" ] && SPOT_FLAG="--spot"
+echo "[1/4] Creating TPU VM (spot=${SPOT}) ${TPU_NAME} (${ACCELERATOR_TYPE}, ${RUNTIME_VERSION})..."
 gcloud compute tpus tpu-vm create "${TPU_NAME}" \
   --project="${PROJECT_ID}" --zone="${ZONE}" \
-  --accelerator-type="${ACCELERATOR_TYPE}" --version="${RUNTIME_VERSION}"
+  --accelerator-type="${ACCELERATOR_TYPE}" --version="${RUNTIME_VERSION}" ${SPOT_FLAG}
 
 echo "[2/4] Copying the repo..."
 gcloud compute tpus tpu-vm scp --project="${PROJECT_ID}" --zone="${ZONE}" --recurse \
