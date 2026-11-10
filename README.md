@@ -3,7 +3,7 @@
 - **Por qué es relevante:** desde 2026 la forma oficial de correr PyTorch en Cloud TPU es [TorchTPU](https://github.com/google-pytorch/torch_tpu), un backend nativo de PyTorch (`torch.device("tpu")`, `torch.compile(backend="tpu")`, `torch.distributed` con `tpu_dist`). Tu código PyTorch se queda como está. Lo que decide si una TPU rinde es que el paso de entrenamiento se pueda compilar como un grafo estable, con formas estáticas y sin viajes al host a mitad del paso.
 - **Para quién es:** ingenieros que entrenan o sirven modelos en PyTorch y evalúan Cloud TPU, o que quieren mezclar un kernel de JAX dentro de `torch.autograd`.
 - **Qué vas a aprender:** los dos modos de TorchTPU (eager y `torch.compile`), cómo cazar graph breaks con `torch._dynamo.explain`, las tres trampas que obligan a recompilar y cómo se corrigen, sharding declarado con `DeviceMesh` + DTensor, y el puente PyTorch y JAX con DLPack sobre StableHLO, el idioma común de OpenXLA.
-- **Parte de la serie:** [JAX & OpenXLA Field Guide](https://github.com/ykro/jax-openxla-field-guide) (episodio A5, cierre de la Serie A).
+- **Parte de la serie:** [JAX & OpenXLA Field Guide](https://github.com/ykro/jax-openxla-field-guide) (quinto episodio, cierre de la ruta para quien viene de PyTorch).
 
 > **Antecedente.** Este repo se llamaba `pytorch-xla-tpu-playbook` y usaba PyTorch/XLA (`torch_xla`). Ese proyecto está deprecado y su repo se archiva el 15 de noviembre de 2026; el banner de [github.com/pytorch/xla](https://github.com/pytorch/xla) pide empezar con TorchTPU y migrar. Aquí ya no queda código de `torch_xla`.
 
