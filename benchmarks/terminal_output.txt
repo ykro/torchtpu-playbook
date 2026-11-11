@@ -89,5 +89,5 @@ StableHLO op counts: {'add': 3, 'broadcast_in_dim': 8, 'constant': 5, 'divide': 
   [PASS] exp05 hybrid loss decreased
 
 ==========================================================================
- VERIFICATION STATUS: PASS (20/20 checks in 17.8s)
+ VERIFICATION STATUS: PASS (20/20 checks in 4.5s)
 ==========================================================================
